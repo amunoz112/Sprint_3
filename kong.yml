@@ -1,36 +1,25 @@
 _format_version: "2.1"
 
 services:
-  - host: monitoring_upstream
-    name: monitoring_service
-    protocol: http
+  - name: products-svc
+    url: http://products_upstream
     routes:
-      
-      - name: monitoring
-        paths:
-          - /
+      - name: products-route
+        paths: ["/products"]
         strip_path: false
 
-  - host: alarms_upstream
-    name: alarms_service
-    protocol: http
-    routes:
-      
-      - name: alarms
-        paths:
-          - /alarms
-          - /alarmsValidate/
-        strip_path: false
-    
+
 upstreams:
-  - name: alarms_upstream
+  - name: products_upstream
+    healthchecks:
+      active:
+        http_path: /products/health   # <-- health de PRODUCTS
+        healthy:   { successes: 2 }
+        unhealthy: { http_failures: 2, tcp_failures: 2 }
+        interval: 5
     targets:
-      - target: <ip-privada-alarms-app-a>:8080
-        weight: 100
-      - target: <ip-privada-alarms-app-b>:8080
-        weight: 100
-      - target: <ip-privada-alarms-app-c>:8080
-        weight: 100
+      - target: <PRODUCTS_A_PRIVATE_IP>:8080
+      - target: <PRODUCTS_B_PRIVATE_IP>:8080
     #healthchecks:
     #  threshold: 0
     #  active:
@@ -42,10 +31,3 @@ upstreams:
     #    unhealthy:
     #      tcp_failures: 0
     #      interval: 0
-
-  - name: monitoring_upstream
-    targets:
-      - target: <ip-privada-monitoring-app>:8080
-        weight: 100
-
-

@@ -6,4 +6,6 @@ urlpatterns = [
     path("products/available", views.products_available, name="products-available"),
     path("products/list", views.product_list, name="product-list"),
     path("products/create", csrf_exempt(views.product_create), name="product-create"),
+    path("health", views.health, name="products-health"),
+
 ]

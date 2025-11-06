@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.http import JsonResponse
 
 from .forms import ProductForm
 from .logic.product_logic import get_products, create_product
@@ -33,3 +34,6 @@ def product_create(request):
 
     context = {"form": form}
     return render(request, "Product/productCreate.html", context)
+
+def health_check(request):
+    return JsonResponse({'message': 'OK'}, status=200)
