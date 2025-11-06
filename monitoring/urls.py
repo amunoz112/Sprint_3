@@ -16,14 +16,19 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from . import views
+from products import views as product_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('health/', views.health_check, name='health'),
-    path('', views.index),
-    path('', include('measurements.urls')),
-    path('', include('variables.urls')),
+    
+    path('', product_views.product_list, name='home'),
+
+    path('products/', include('products.urls')),
+    
+    #path('', views.index),
+    path('measurements/', include('measurements.urls')),
+    path('variables/', include('variables.urls')),
     #path('', include('alarms.urls')),
-    path("products/", include("products.urls")),
 
 ]
