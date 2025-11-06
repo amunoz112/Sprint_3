@@ -49,8 +49,8 @@ provider "aws" {
 # Variables locales usadas en la configuración de Terraform.
 locals {
   project_name = "${var.project_prefix}-circuit-breaker"
-  repository   = "https://github.com/ISIS2503/ISIS2503-MonitoringApp.git"
-  branch       = "Circuit-Breaker"
+  repository   = "https://github.com/amunoz112/Sprint_3.git"
+  branch       = "product"
 
   common_tags = {
     Project   = local.project_name
@@ -209,36 +209,51 @@ resource "aws_instance" "products" {
   vpc_security_group_ids      = [aws_security_group.traffic_django.id, aws_security_group.traffic_ssh.id]
 
   user_data = <<-EOT
-              #!/bin/bash
-              sudo export DATABASE_HOST=${aws_instance.database.private_ip}
-              echo "DATABASE_HOST=${aws_instance.database.private_ip}" | sudo tee -a /etc/environment
+    #!/bin/bash
+    set -eux
 
-              sudo apt-get update -y
-              sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev
+    # Exporta la IP privada de la DB para Django (Postgres)
+    echo "DATABASE_HOST=${aws_instance.database.private_ip}" | tee -a /etc/environment
+    export DATABASE_HOST=${aws_instance.database.private_ip}
 
-              mkdir -p /labs
-              cd /labs
+    apt-get update -y
+    apt-get install -y python3-pip git build-essential libpq-dev python3-dev
 
-              if [ ! -d ISIS2503-MonitoringApp ]; then
-                git clone ${local.repository}
-              fi
+    mkdir -p /labs
+    cd /labs
 
-              cd Sprint_3
-              git fetch origin ${local.branch} || true
-              git checkout ${local.branch}
+    # Clona TU repo (no el del curso)
+    if [ ! -d Sprint_3 ]; then
+      git clone ${local.repository}
+    fi
 
-              sudo pip3 install --upgrade pip
-              sudo pip3 install -r requirements.txt
+    cd Sprint_3
+    git fetch origin ${local.branch} || true
+    git checkout ${local.branch}
 
-              # Migraciones de Django
-              sudo python3 manage.py makemigrations
-              sudo python3 manage.py migrate
+    pip3 install --upgrade pip
+    if [ -f requirements.txt ]; then
+      pip3 install -r requirements.txt
+    else
+      pip3 install django psycopg2-binary
+    fi
+
+    # Migraciones
+    python3 manage.py makemigrations || true
+    python3 manage.py migrate || true
+
+    # Levantar en 8080 (demo). En prod usar gunicorn+systemd.
+    nohup python3 manage.py runserver 0.0.0.0:8080 >/var/log/products.log 2>&1 &
+  EOT
 
   tags = merge(local.common_tags, {
     Name = "${var.project_prefix}-products-${each.key}"
     Role = "products"
   })
+
+  depends_on = [aws_instance.database]
 }
+
 
 # Salida. Muestra la dirección IP pública de la instancia de Kong (Circuit Breaker).
 output "kong_public_ip" {
@@ -258,11 +273,6 @@ output "products_private_ips" {
   value       = { for id, instance in aws_instance.products : id => instance.private_ip }
 }
 
-# Salida. Muestra la dirección IP privada de la instancia de la aplicación de Monitoring.
-output "monitoring_private_ip" {
-  description = "Private IP address for the monitoring service application"
-  value       = aws_instance.monitoring.private_ip
-}
 
 # Salida. Muestra la dirección IP privada de la instancia de la base de datos PostgreSQL.
 output "database_private_ip" {
