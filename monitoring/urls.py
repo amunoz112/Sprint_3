@@ -24,4 +24,6 @@ urlpatterns = [
     path('', include('measurements.urls')),
     path('', include('variables.urls')),
     #path('', include('alarms.urls')),
+    path("products/", include("products.urls")),
+
 ]
