@@ -233,7 +233,7 @@ resource "aws_instance" "products" {
 
     pip3 install --upgrade pip
     if [ -f requirements.txt ]; then
-      pip3 install -r requirements.txt
+      pip3 install --break-system-packages -r requirements.txt
     else
       pip3 install django psycopg2-binary
     fi
